@@ -10,12 +10,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import solve_ivp
 
 
-def lorenz_system(t, state, sigma, r, b):
+def lorenz_system(state: np.ndarray, sigma: float, r: float, b: float) -> np.ndarray:
     """
     定义洛伦兹系统方程
     
     参数:
-        t: 当前时间
         state: 当前状态向量 [x, y, z]
         sigma, r, b: 系统参数
         
@@ -42,10 +41,10 @@ def solve_lorenz_equations(sigma: float = 10.0, r: float = 28.0, b: float = 8/3,
     """
     t_eval = np.arange(t_span[0], t_span[1], dt)
     sol = solve_ivp(
-        fun=lambda t, state: lorenz_system(t, state, sigma, r, b),
-        t_span=t_span,
-        y0=[x0, y0, z0],
-        t_eval=t_eval,
+        lambda t, state: lorenz_system(state, sigma, r, b),
+        t_span, 
+        [x0, y0, z0], 
+        t_eval=t_eval, 
         method='RK45',
         rtol=1e-6,
         atol=1e-9
@@ -93,9 +92,9 @@ def compare_initial_conditions(ic1: tuple[float, float, float],
     plt.show()
     
     plt.figure(figsize=(12, 6))
-    plt.semilogy(t1, distance, 'g-', label='Distance between trajectories')
+    plt.plot(t1, distance, 'g-', label='Distance between trajectories')
     plt.xlabel('Time', fontsize=12)
-    plt.ylabel('Distance (log scale)', fontsize=12)
+    plt.ylabel('Distance', fontsize=12)
     plt.title('Distance between Trajectories over Time', fontsize=15)
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.legend()

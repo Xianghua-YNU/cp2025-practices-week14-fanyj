@@ -10,7 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import solve_ivp
 
 
-def lorenz_system(state: np.ndarray, sigma: float, r: float, b: float) -> np.ndarray:
+def lorenz_system(state, sigma, r, b):
     """
     定义洛伦兹系统方程
     
@@ -21,17 +21,15 @@ def lorenz_system(state: np.ndarray, sigma: float, r: float, b: float) -> np.nda
     返回:
         导数向量 [dx/dt, dy/dt, dz/dt]
     """
-    x, y, z = state
-    return np.array([
-        sigma * (y - x),
-        r * x - y - x * z,
-        x * y - b * z
-    ])
+    dxdt = sigma * (state[1] - state[0])
+    dydt = state[0] * (r - state[2]) - state[1]
+    dzdt = state[0] * state[1] - b * state[2]
+    return [dxdt, dydt, dzdt]
 
 
-def solve_lorenz_equations(sigma: float = 10.0, r: float = 28.0, b: float = 8/3,
-                          x0: float = 0.1, y0: float = 0.1, z0: float = 0.1,
-                          t_span: tuple[float, float] = (0, 50), dt: float = 0.01):
+def solve_lorenz_equations(sigma=10.0, r=28.0, b=8/3,
+                          x0=0.1, y0=0.1, z0=0.1,
+                          t_span=(0, 50), dt=0.01):
     """
     求解洛伦兹方程
     
@@ -40,65 +38,49 @@ def solve_lorenz_equations(sigma: float = 10.0, r: float = 28.0, b: float = 8/3,
         y: 解数组，形状为(3, n_points)
     """
     t_eval = np.arange(t_span[0], t_span[1], dt)
-    sol = solve_ivp(
-        lambda t, state: lorenz_system(state, sigma, r, b),
-        t_span, 
-        [x0, y0, z0], 
-        t_eval=t_eval, 
-        method='RK45',
-        rtol=1e-6,
-        atol=1e-9
-    )
-    return sol.t, sol.y
+    sol = solve_ivp(lorenz_system, t_span, [x0, y0, z0], 
+                   args=(sigma, r, b), t_eval=t_eval)
+    return sol.t, sol.y.T
 
 
 def plot_lorenz_attractor(t: np.ndarray, y: np.ndarray):
     """
-    绘制洛伦兹吸引子
+    绘制洛伦兹吸引子3D图
     """
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot(y[0], y[1], y[2], lw=0.5, color='steelblue')
-    ax.set_xlabel('X', fontsize=12)
-    ax.set_ylabel('Y', fontsize=12)
-    ax.set_zlabel('Z', fontsize=12)
-    ax.set_title('Lorenz Attractor', fontsize=15)
-    plt.tight_layout()
+    ax.plot(y[0], y[1], y[2], lw=0.5)
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    ax.set_title('Lorenz Attractor')
+    ax.view_init(elev=30, azim=45)
     plt.show()
 
 
-def compare_initial_conditions(ic1: tuple[float, float, float], 
-                              ic2: tuple[float, float, float], 
-                              t_span: tuple[float, float] = (0, 50), dt: float = 0.01):
+def compare_initial_conditions(ic1, ic2, t_span=(0,50), dt=0.01):
     """
     比较不同初始条件的解
     """
-    t1, y1 = solve_lorenz_equations(x0=ic1[0], y0=ic1[1], z0=ic1[2], t_span=t_span, dt=dt)
-    t2, y2 = solve_lorenz_equations(x0=ic2[0], y0=ic2[1], z0=ic2[2], t_span=t_span, dt=dt)
+    # 求解两个初始条件
+    t1, y1 = solve_lorenz_equations(ic1[0], ic1[1], ic1[2], t_span, dt)
+    t2, y2 = solve_lorenz_equations(ic2[0], ic2[1], ic2[2], t_span, dt)
     
-    # 计算轨迹距离
-    distance = np.sqrt((y1[0]-y2[0])**2 + (y1[1]-y2[1])**2 + (y1[2]-y2[2])**2)
+    # 创建图形
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111, projection='3d')
     
-    # 绘制比较图
-    plt.figure(figsize=(12, 6))
-    plt.plot(t1, y1[0], 'b-', label=f'IC1: {ic1}')
-    plt.plot(t2, y2[0], 'r-', label=f'IC2: {ic2}')
-    plt.xlabel('Time', fontsize=12)
-    plt.ylabel('X', fontsize=12)
-    plt.title('Comparison of X(t) with Different Initial Conditions', fontsize=15)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # 绘制两条轨迹
+    ax.plot(y1[0], y1[1], y1[2], color='blue', label='IC1: {}'.format(ic1))
+    ax.plot(y2[0], y2[1], y2[2], color='red', linestyle='--', 
+            label='IC2: {}'.format(ic2))
     
-    plt.figure(figsize=(12, 6))
-    plt.plot(t1, distance, 'g-', label='Distance between trajectories')
-    plt.xlabel('Time', fontsize=12)
-    plt.ylabel('Distance', fontsize=12)
-    plt.title('Distance between Trajectories over Time', fontsize=15)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend()
-    plt.tight_layout()
+    # 设置图形属性
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title('Comparison of Different Initial Conditions')
+    ax.legend()
     plt.show()
 
 
@@ -106,10 +88,6 @@ def main():
     """
     主函数，执行所有任务
     """
-    # 设置中文字体
-    plt.rcParams["font.family"] = ["SimHei", "WenQuanYi Micro Hei", "Heiti TC"]
-    plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
-    
     # 任务A: 求解洛伦兹方程
     t, y = solve_lorenz_equations()
     

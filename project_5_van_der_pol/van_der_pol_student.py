@@ -16,10 +16,9 @@ def van_der_pol_ode(state: np.ndarray, t: float, mu: float = 1.0, omega: float =
         np.ndarray: 形状为(2,)的数组，包含dx/dt和dv/dt
     """
     x, v = state
-    # TODO: 实现van der Pol方程
-    # dx/dt = v
-    # dv/dt = mu(1-x^2)v - omega^2*x
-    raise NotImplementedError("请实现van der Pol方程")
+    dx_dt = v
+    dv_dt = mu * (1 - x**2) * v - omega**2 * x
+    return np.array([dx_dt, dv_dt])
 
 def rk4_step(ode_func: Callable, state: np.ndarray, t: float, dt: float, **kwargs) -> np.ndarray:
     """
@@ -35,8 +34,13 @@ def rk4_step(ode_func: Callable, state: np.ndarray, t: float, dt: float, **kwarg
     返回:
         np.ndarray: 下一步的状态
     """
-    # TODO: 实现RK4方法
-    raise NotImplementedError("请实现RK4方法")
+    k1 = ode_func(state, t, **kwargs)
+    k2 = ode_func(state + 0.5 * dt * k1, t + 0.5 * dt, **kwargs)
+    k3 = ode_func(state + 0.5 * dt * k2, t + 0.5 * dt, **kwargs)
+    k4 = ode_func(state + dt * k3, t + dt, **kwargs)
+    
+    next_state = state + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+    return next_state
 
 def solve_ode(ode_func: Callable, initial_state: np.ndarray, t_span: Tuple[float, float], 
               dt: float, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
@@ -53,8 +57,17 @@ def solve_ode(ode_func: Callable, initial_state: np.ndarray, t_span: Tuple[float
     返回:
         Tuple[np.ndarray, np.ndarray]: (时间点数组, 状态数组)
     """
-    # TODO: 实现ODE求解器
-    raise NotImplementedError("请实现ODE求解器")
+    t_start, t_end = t_span
+    num_steps = int((t_end - t_start) / dt) + 1
+    t_points = np.linspace(t_start, t_end, num_steps)
+    state_dim = len(initial_state)
+    states = np.zeros((num_steps, state_dim))
+    states[0] = initial_state
+    
+    for i in range(num_steps - 1):
+        states[i+1] = rk4_step(ode_func, states[i], t_points[i], dt, **kwargs)
+    
+    return t_points, states
 
 def plot_time_evolution(t: np.ndarray, states: np.ndarray, title: str) -> None:
     """
@@ -65,8 +78,16 @@ def plot_time_evolution(t: np.ndarray, states: np.ndarray, title: str) -> None:
         states: np.ndarray, 状态数组
         title: str, 图标题
     """
-    # TODO: 实现时间演化图的绘制
-    raise NotImplementedError("请实现时间演化图的绘制")
+    plt.figure(figsize=(10, 5))
+    plt.plot(t, states[:, 0], 'b-', label='位置 x')
+    plt.plot(t, states[:, 1], 'r-', label='速度 v')
+    plt.xlabel('时间')
+    plt.ylabel('状态')
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
 def plot_phase_space(states: np.ndarray, title: str) -> None:
     """
@@ -76,8 +97,15 @@ def plot_phase_space(states: np.ndarray, title: str) -> None:
         states: np.ndarray, 状态数组
         title: str, 图标题
     """
-    # TODO: 实现相空间图的绘制
-    raise NotImplementedError("请实现相空间图的绘制")
+    plt.figure(figsize=(8, 8))
+    plt.plot(states[:, 0], states[:, 1], 'g-')
+    plt.xlabel('位置 x')
+    plt.ylabel('速度 v')
+    plt.title(title)
+    plt.grid(True)
+    plt.axis('equal')
+    plt.tight_layout()
+    plt.show()
 
 def calculate_energy(state: np.ndarray, omega: float = 1.0) -> float:
     """
@@ -90,9 +118,8 @@ def calculate_energy(state: np.ndarray, omega: float = 1.0) -> float:
     返回:
         float: 系统的能量
     """
-    # TODO: 实现能量计算
-    # E = (1/2)v^2 + (1/2)omega^2*x^2
-    raise NotImplementedError("请实现能量计算")
+    x, v = state
+    return 0.5 * (v**2 + omega**2 * x**2)
 
 def analyze_limit_cycle(states: np.ndarray) -> Tuple[float, float]:
     """
@@ -104,32 +131,83 @@ def analyze_limit_cycle(states: np.ndarray) -> Tuple[float, float]:
     返回:
         Tuple[float, float]: (振幅, 周期)
     """
-    # TODO: 实现极限环分析
-    raise NotImplementedError("请实现极限环分析")
+    # 寻找位置x的局部极大值来估计振幅和周期
+    x = states[:, 0]
+    local_maxima = []
+    
+    for i in range(1, len(x) - 1):
+        if x[i] > x[i-1] and x[i] > x[i+1]:
+            local_maxima.append((i, x[i]))
+    
+    if len(local_maxima) < 2:
+        print("警告: 未能找到足够的局部极大值来估计周期")
+        return np.max(np.abs(x)), 0.0
+    
+    # 振幅估计为平均局部极大值
+    amplitude = np.mean([lm[1] for lm in local_maxima])
+    
+    # 周期估计为相邻极大值之间的平均时间间隔
+    dt = 0.01  # 假设时间步长为0.01
+    periods = [(lm_next[0] - lm_prev[0]) * dt for lm_prev, lm_next in zip(local_maxima[:-1], local_maxima[1:])]
+    period = np.mean(periods)
+    
+    return amplitude, period
 
 def main():
     # 设置基本参数
-    mu = 1.0
     omega = 1.0
-    t_span = (0, 20)
+    t_span = (0, 50)
     dt = 0.01
     initial_state = np.array([1.0, 0.0])
     
-    # TODO: 任务1 - 基本实现
-    # 1. 求解van der Pol方程
-    # 2. 绘制时间演化图
+    # 任务1 - 基本实现
+    mu = 1.0
+    t_points, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
+    plot_time_evolution(t_points, states, f'van der Pol振子时间演化 (μ={mu})')
     
-    # TODO: 任务2 - 参数影响分析
-    # 1. 尝试不同的mu值
-    # 2. 比较和分析结果
+    # 任务2 - 参数影响分析
+    mu_values = [0.1, 1.0, 3.0]
+    plt.figure(figsize=(12, 8))
     
-    # TODO: 任务3 - 相空间分析
-    # 1. 绘制相空间轨迹
-    # 2. 分析极限环特征
+    for i, mu in enumerate(mu_values):
+        _, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
+        plt.subplot(len(mu_values), 1, i+1)
+        plt.plot(t_points, states[:, 0], label=f'位置 x (μ={mu})')
+        plt.plot(t_points, states[:, 1], label=f'速度 v (μ={mu})')
+        plt.xlabel('时间')
+        plt.ylabel('状态')
+        plt.legend()
+        plt.grid(True)
     
-    # TODO: 任务4 - 能量分析
-    # 1. 计算和绘制能量随时间的变化
-    # 2. 分析能量的耗散和补充
+    plt.suptitle('不同μ值下van der Pol振子的时间演化')
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.92)
+    plt.show()
+    
+    # 任务3 - 相空间分析
+    for mu in mu_values:
+        _, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
+        plot_phase_space(states, f'van der Pol振子相空间轨迹 (μ={mu})')
+        
+        # 分析极限环
+        amplitude, period = analyze_limit_cycle(states)
+        print(f'μ={mu}时的极限环特性: 振幅={amplitude:.4f}, 周期={period:.4f}')
+    
+    # 任务4 - 能量分析
+    plt.figure(figsize=(10, 5))
+    
+    for mu in mu_values:
+        _, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
+        energies = np.array([calculate_energy(state, omega) for state in states])
+        plt.plot(t_points, energies, label=f'能量 (μ={mu})')
+    
+    plt.xlabel('时间')
+    plt.ylabel('能量')
+    plt.title('不同μ值下van der Pol振子的能量演化')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     main()

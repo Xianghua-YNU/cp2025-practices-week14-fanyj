@@ -1,41 +1,38 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-import unittest
 from typing import Tuple, Callable, List
-
 
 def van_der_pol_ode(t: float, state: np.ndarray, mu: float = 1.0, omega: float = 1.0) -> np.ndarray:
     """
     van der Pol振子的一阶微分方程组。
-
+    
     参数:
         t: float, 当前时间
         state: np.ndarray, 形状为(2,)的数组，包含位置x和速度v
         mu: float, 非线性阻尼参数
         omega: float, 角频率
-
+    
     返回:
         np.ndarray: 形状为(2,)的数组，包含dx/dt和dv/dt
     """
     x, v = state
     dx_dt = v
-    dv_dt = mu * (1 - x ** 2) * v - omega ** 2 * x
+    dv_dt = mu * (1 - x**2) * v - omega**2 * x
     return np.array([dx_dt, dv_dt])
 
-
-def solve_ode(ode_func: Callable, initial_state: np.ndarray, t_span: Tuple[float, float],
+def solve_ode(ode_func: Callable, initial_state: np.ndarray, t_span: Tuple[float, float], 
               dt: float, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
     """
     使用scipy.integrate.solve_ivp求解常微分方程组。
-
+    
     参数:
         ode_func: Callable, 微分方程函数，形式为 func(t, state, *args)
         initial_state: np.ndarray, 初始状态
         t_span: Tuple[float, float], 时间范围 (t_start, t_end)
         dt: float, 时间步长
         **kwargs: 传递给ode_func的额外参数
-
+    
     返回:
         Tuple[np.ndarray, np.ndarray]: (时间点数组, 状态数组)
     """
@@ -52,11 +49,10 @@ def solve_ode(ode_func: Callable, initial_state: np.ndarray, t_span: Tuple[float
     )
     return sol.t, sol.y.T
 
-
 def plot_time_evolution(t: np.ndarray, states: np.ndarray, title: str) -> None:
     """
     绘制状态随时间的演化。
-
+    
     参数:
         t: np.ndarray, 时间点数组
         states: np.ndarray, 状态数组
@@ -73,11 +69,10 @@ def plot_time_evolution(t: np.ndarray, states: np.ndarray, title: str) -> None:
     plt.tight_layout()
     plt.show()
 
-
 def plot_phase_space(states: np.ndarray, title: str) -> None:
     """
     绘制相空间轨迹。
-
+    
     参数:
         states: np.ndarray, 状态数组
         title: str, 图标题
@@ -92,93 +87,77 @@ def plot_phase_space(states: np.ndarray, title: str) -> None:
     plt.tight_layout()
     plt.show()
 
-
 def analyze_limit_cycle(states: np.ndarray, dt: float) -> Tuple[float, float]:
     """
     分析极限环的特征（振幅和周期）。
-
+    
     参数:
         states: np.ndarray, 状态数组
         dt: float, 时间步长
-
+    
     返回:
         Tuple[float, float]: (振幅, 周期)
     """
     # 跳过初始瞬态（取后50%的数据）
     skip = int(len(states) * 0.5)
     x = states[skip:, 0]
-
+    
     # 寻找局部极大值
     peaks = []
     peak_indices = []
     for i in range(1, len(x) - 1):
-        if x[i] > x[i - 1] and x[i] > x[i + 1]:
+        if x[i] > x[i-1] and x[i] > x[i+1]:
             peaks.append(x[i])
             peak_indices.append(i)
-
+    
     # 计算振幅（峰值的平均值）
     amplitude = np.mean(peaks) if peaks else 0.0
-
+    
     # 计算周期（相邻峰值之间的平均时间间隔）
     if len(peak_indices) >= 2:
         periods = np.diff(peak_indices) * dt
         period = np.mean(periods)
     else:
         period = 0.0
-
+    
     return amplitude, period
-
 
 def main():
     # 设置基本参数
     omega = 1.0
     t_span = (0, 50)
-    dt = 0.01
+    dt = 0.01  # 定义时间步长
     initial_state = np.array([1.0, 0.0])
-
+    
     # 任务1 - 基本实现
     mu = 1.0
     t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
     plot_time_evolution(t, states, f'van der Pol振子时间演化 (μ={mu})')
-
+    
     # 任务2 - 参数影响分析
     mu_values = [1.0, 2.0, 4.0]
-    plt.figure(figsize=(12, 8))
-
-    for i, mu in enumerate(mu_values):
+    
+    for mu in mu_values:
         t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
-        plt.subplot(len(mu_values), 1, i + 1)
-        plt.plot(t, states[:, 0], label=f'位置 x (μ={mu})')
-        plt.plot(t, states[:, 1], label=f'速度 v (μ={mu})')
-        plt.xlabel('时间')
-        plt.ylabel('状态')
-        plt.legend()
-        plt.grid(True)
-
-        # 分析极限环
+        # 分析极限环时传入dt参数
         amplitude, period = analyze_limit_cycle(states, dt)
         print(f'μ={mu}时的极限环特性: 振幅={amplitude:.4f}, 周期={period:.4f}')
-
-    plt.suptitle('不同μ值下van der Pol振子的时间演化')
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.92)
-    plt.show()
-
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(t, states[:, 0], 'b-', label='位置 x')
+        plt.plot(t, states[:, 1], 'r-', label='速度 v')
+        plt.xlabel('时间')
+        plt.ylabel('状态')
+        plt.title(f'van der Pol振子时间演化 (μ={mu})')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+    
     # 任务3 - 相空间分析
     for mu in mu_values:
         t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
         plot_phase_space(states, f'van der Pol振子相空间轨迹 (μ={mu})')
 
-
-class TestVanDerPolOscillator(unittest.TestCase):
-    def test_limit_cycle_analysis(self):
-        # 这里简单构造示例数据用于测试，实际应根据具体情况生成合适数据
-        states = np.random.rand(100, 2)
-        dt = 0.01
-        amplitude, period = analyze_limit_cycle(states, dt)
-        self.assertEqual(isinstance(amplitude, float), True)
-        self.assertEqual(isinstance(period, float), True)
-
-
 if __name__ == "__main__":
-    unittest.main()
+    main()

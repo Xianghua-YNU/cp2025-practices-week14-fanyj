@@ -140,26 +140,20 @@ def analyze_limit_cycle(states: np.ndarray) -> Tuple[float, float]:
     返回:
         Tuple[float, float]: (振幅, 周期)
     """
-    # 寻找位置x的局部极大值来估计振幅和周期
     x = states[:, 0]
-    local_maxima = []
-
-    for i in range(1, len(x) - 1):
-        if x[i] > x[i - 1] and x[i] > x[i + 1]:
-            local_maxima.append((i, x[i]))
-
-    if len(local_maxima) < 2:
+    # 更稳健地寻找局部极大值，使用scipy.signal的argrelextrema函数
+    from scipy.signal import argrelextrema
+    local_maxima_indices = argrelextrema(x, np.greater)[0]
+    if len(local_maxima_indices) < 2:
         print("警告: 未能找到足够的局部极大值来估计周期")
         return np.max(np.abs(x)), 0.0
-
+    local_maxima = x[local_maxima_indices]
     # 振幅估计为平均局部极大值
-    amplitude = np.mean([lm[1] for lm in local_maxima])
-
+    amplitude = np.mean(local_maxima)
     # 周期估计为相邻极大值之间的平均时间间隔
     dt = 0.01  # 假设时间步长为0.01
-    periods = [(lm_next[0] - lm_prev[0]) * dt for lm_prev, lm_next in zip(local_maxima[: - 1], local_maxima[1:])]
+    periods = np.diff(local_maxima_indices) * dt
     period = np.mean(periods)
-
     return amplitude, period
 
 

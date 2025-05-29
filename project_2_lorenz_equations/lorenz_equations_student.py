@@ -44,9 +44,9 @@ def solve_lorenz_equations(sigma=10.0, r=28.0, b=8/3,
     # 定义时间点
     t_eval = np.arange(t_span[0], t_span[1], dt)
     
-    # 求解ODE
+    # 求解ODE，明确传递所有参数
     sol = solve_ivp(
-        fun=lambda t, state: lorenz_system(t, state, sigma, r, b),
+        fun=lambda t, state, s=sigma, r_val=r, b_val=b: lorenz_system(t, state, s, r_val, b_val),
         t_span=t_span,
         y0=[x0, y0, z0],
         t_eval=t_eval,
@@ -90,7 +90,7 @@ def compare_initial_conditions(ic1, ic2, sigma=10.0, r=28.0, b=8/3, t_span=(0, 5
     # 计算欧氏距离
     distance = np.sqrt(np.sum((y1 - y2)**2, axis=0))
     
-    # 创建两个图形
+    # 创建图形
     fig = plt.figure(figsize=(15, 12))
     
     # 1. 3D轨迹对比图
@@ -123,7 +123,6 @@ def compare_initial_conditions(ic1, ic2, sigma=10.0, r=28.0, b=8/3, t_span=(0, 5
     
     # 4. 局部放大图
     ax4 = fig.add_subplot(224)
-    # 选择时间的后半段进行放大
     mid_idx = len(t1) // 2
     ax4.plot(t1[mid_idx:], y1[0][mid_idx:], color='blue', linewidth=0.8)
     ax4.plot(t2[mid_idx:], y2[0][mid_idx:], color='red', linewidth=0.8)

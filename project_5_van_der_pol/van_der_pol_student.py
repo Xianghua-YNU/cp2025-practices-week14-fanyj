@@ -39,23 +39,25 @@ def plot_phase_space(states: np.ndarray, title: str) -> None:
     plt.axis('equal')
     plt.show()
 
-def analyze_limit_cycle(states: np.ndarray) -> Tuple[float, float]:
+def analyze_limit_cycle(states: np.ndarray, dt: float) -> Tuple[float, float]:
     """分析极限环的特征（振幅和周期）。"""
     # 跳过初始瞬态
     skip = int(len(states)*0.5)
     x = states[skip:, 0]
-    t = np.arange(len(x))
+    t = np.arange(len(x)) * dt  # 使用实际时间而非索引
     
     # 计算振幅（取最大值的平均）
     peaks = []
+    peak_times = []
     for i in range(1, len(x)-1):
         if x[i] > x[i-1] and x[i] > x[i+1]:
             peaks.append(x[i])
+            peak_times.append(t[i])
     amplitude = np.mean(peaks) if peaks else np.nan
     
     # 计算周期（取相邻峰值点的时间间隔平均）
-    if len(peaks) >= 2:
-        periods = np.diff(t[1:-1][np.array([x[i] > x[i-1] and x[i] > x[i+1] for i in range(1, len(x)-1)])])
+    if len(peak_times) >= 2:
+        periods = np.diff(peak_times)
         period = np.mean(periods) if len(periods) > 0 else np.nan
     else:
         period = np.nan
@@ -79,8 +81,8 @@ def main():
     for mu in mu_values:
         t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
         plot_time_evolution(t, states, f'Time Evolution of van der Pol Oscillator (μ={mu})')
-        amplitude, period = analyze_limit_cycle(states)
-        print(f'μ = {mu}: Amplitude ≈ {amplitude:.3f}, Period ≈ {period*dt:.3f}')
+        amplitude, period = analyze_limit_cycle(states, dt)  # 传递dt参数
+        print(f'μ = {mu}: Amplitude ≈ {amplitude:.3f}, Period ≈ {period:.3f}')  # 不再需要乘以dt
     
     # Task 3 - Phase space analysis
     for mu in mu_values:

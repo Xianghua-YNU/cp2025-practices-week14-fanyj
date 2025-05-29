@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
@@ -38,109 +39,53 @@ def plot_phase_space(states: np.ndarray, title: str) -> None:
     plt.axis('equal')
     plt.show()
 
-def calculate_energy(state: np.ndarray, omega: float = 1.0) -> float:
-    """计算van der Pol振子的能量。"""
-    x, v = state
-    return 0.5 * v**2 + 0.5 * omega**2 * x**2
-
-def analyze_limit_cycle(states: np.ndarray, dt: float) -> Tuple[float, float]:
+def analyze_limit_cycle(states: np.ndarray) -> Tuple[float, float]:
     """分析极限环的特征（振幅和周期）。"""
-    # 跳过初始瞬态，只分析稳定部分
-    skip = int(len(states) * 0.3)
+    # 跳过初始瞬态
+    skip = int(len(states)*0.5)
     x = states[skip:, 0]
+    t = np.arange(len(x))
     
-    # 寻找峰值点
-    peak_indices = []
-    for i in range(1, len(x) - 1):
+    # 计算振幅（取最大值的平均）
+    peaks = []
+    for i in range(1, len(x)-1):
         if x[i] > x[i-1] and x[i] > x[i+1]:
-            peak_indices.append(i)
+            peaks.append(x[i])
+    amplitude = np.mean(peaks) if peaks else np.nan
     
-    # 计算振幅（峰值的平均值）
-    if not peak_indices:
-        print("警告: 未能找到峰值点")
-        return np.nan, np.nan
-    
-    amplitudes = [x[i] for i in peak_indices]
-    amplitude = np.mean(amplitudes)
-    
-    # 计算周期（相邻峰值的平均时间间隔）
-    if len(peak_indices) < 2:
-        print("警告: 峰值点不足，无法计算周期")
-        return amplitude, np.nan
-    
-    periods = [(peak_indices[i] - peak_indices[i-1]) * dt for i in range(1, len(peak_indices))]
-    period = np.mean(periods)
+    # 计算周期（取相邻峰值点的时间间隔平均）
+    if len(peaks) >= 2:
+        periods = np.diff(t[1:-1][np.array([x[i] > x[i-1] and x[i] > x[i+1] for i in range(1, len(x)-1)])])
+        period = np.mean(periods) if len(periods) > 0 else np.nan
+    else:
+        period = np.nan
     
     return amplitude, period
 
-def plot_energy_evolution(t: np.ndarray, states: np.ndarray, omega: float = 1.0, title: str = None) -> None:
-    """绘制能量随时间的演化。"""
-    energies = np.array([calculate_energy(state, omega) for state in states])
-    plt.figure(figsize=(10, 6))
-    plt.plot(t, energies)
-    plt.xlabel('Time')
-    plt.ylabel('Energy')
-    plt.title(title or 'Energy Evolution')
-    plt.grid(True)
-    plt.show()
-
-def compare_mu_effect(mu_values: List[float], initial_state: np.ndarray, t_span: Tuple[float, float], dt: float, omega: float = 1.0) -> None:
-    """比较不同mu值对系统行为的影响。"""
-    plt.figure(figsize=(15, 10))
-    
-    for i, mu in enumerate(mu_values):
-        t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
-        
-        # 时间演化图
-        plt.subplot(len(mu_values), 2, 2*i + 1)
-        plt.plot(t, states[:, 0], label='Position')
-        plt.plot(t, states[:, 1], label='Velocity')
-        plt.title(f'μ = {mu}')
-        plt.xlabel('Time')
-        plt.ylabel('State')
-        plt.grid(True)
-        if i == 0:
-            plt.legend()
-        
-        # 相空间图
-        plt.subplot(len(mu_values), 2, 2*i + 2)
-        plt.plot(states[:, 0], states[:, 1])
-        plt.title(f'Phase Space (μ = {mu})')
-        plt.xlabel('Position')
-        plt.ylabel('Velocity')
-        plt.grid(True)
-        plt.axis('equal')
-    
-    plt.tight_layout()
-    plt.show()
-
 def main():
-    # 设置基本参数
-    mu = 2.0  # 增加mu值以显示更明显的非线性效应
+    # Set basic parameters
+    mu = 1.0
     omega = 1.0
-    t_span = (0, 50)  # 延长时间范围以观察稳定状态
+    t_span = (0, 50)
     dt = 0.01
     initial_state = np.array([1.0, 0.0])
     
-    # 任务1 - 基本实现
+    # Task 1 - Basic implementation
     t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
-    plot_time_evolution(t, states, f'van der Pol Oscillator Time Evolution (μ={mu})')
+    plot_time_evolution(t, states, f'Time Evolution of van der Pol Oscillator (μ={mu})')
     
-    # 任务2 - 参数影响分析
-    mu_values = [0.5, 1.0, 2.0, 5.0]  # 测试不同的mu值
-    compare_mu_effect(mu_values, initial_state, t_span, dt, omega)
-    
-    # 任务3 - 相空间分析和极限环特性
+    # Task 2 - Parameter influence analysis
+    mu_values = [1.0, 2.0, 4.0]
     for mu in mu_values:
         t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
-        plot_phase_space(states, f'Phase Space Trajectory (μ={mu})')
-        
-        amplitude, period = analyze_limit_cycle(states, dt)
-        print(f'μ = {mu}: 振幅 ≈ {amplitude:.3f}, 周期 ≈ {period:.3f}')
+        plot_time_evolution(t, states, f'Time Evolution of van der Pol Oscillator (μ={mu})')
+        amplitude, period = analyze_limit_cycle(states)
+        print(f'μ = {mu}: Amplitude ≈ {amplitude:.3f}, Period ≈ {period*dt:.3f}')
     
-    # 任务4 - 能量分析
-    t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
-    plot_energy_evolution(t, states, omega, f'Energy Evolution (μ={mu})')
+    # Task 3 - Phase space analysis
+    for mu in mu_values:
+        t, states = solve_ode(van_der_pol_ode, initial_state, t_span, dt, mu=mu, omega=omega)
+        plot_phase_space(states, f'Phase Space Trajectory of van der Pol Oscillator (μ={mu})')
 
 if __name__ == "__main__":
     main()
